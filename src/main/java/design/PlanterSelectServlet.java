@@ -26,6 +26,7 @@ public class PlanterSelectServlet extends HttpServlet {
         // TODO Auto-generated constructor stub
     }
     
+    /**
     // 仮のデータ：実際はDBから取得する想定
     static Timestamp ts = Timestamp.valueOf("2020-01-01 10:10:10");
     private static final List<Flower> itemList = Arrays.asList(
@@ -33,38 +34,48 @@ public class PlanterSelectServlet extends HttpServlet {
         new Flower(2, "tulip", 2, ts),
         new Flower(3, "sunflower", 3, ts)
     );
+    */
 
 	/**
 	 * @see HttpServlet#doGet(HttpServletRequest request, HttpServletResponse response)
 	 */
 	protected void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
-		// パラメータからIDを取得
-        String idParam = request.getParameter("id");
-        int id = -1;
+		String idStr = request.getParameter("id");
+
+        if (idStr == null || idStr.isEmpty()) {
+            // IDが無ければ一覧画面にリダイレクト
+            response.sendRedirect("planterList.jsp");
+            return;
+        }
+
+        int id;
         try {
-            id = Integer.parseInt(idParam);
+            id = Integer.parseInt(idStr);
         } catch (NumberFormatException e) {
-            response.sendError(HttpServletResponse.SC_BAD_REQUEST, "不正なIDです");
+            // 数値変換できなければ一覧に戻す
+            response.sendRedirect("planterList.jsp");
             return;
         }
 
-        // 該当するアイテムを探す
-        Flower selectedItem = null;
-        for (Flower flower : itemList) {
-            if (flower.getId() == id) {
-                selectedItem = flower;
-                break;
-            }
-        }
+        // DAOを使って花を取得
+        Flower flower = FlowerDAO.getFlowerById(id);
 
-        if (selectedItem == null) {
-            response.sendError(HttpServletResponse.SC_NOT_FOUND, "指定されたアイテムが見つかりません");
+        if (flower == null) {
+            // 見つからなければ一覧に戻す
+            response.sendRedirect("flowerList.jsp");
             return;
         }
 
-        // JSPに渡して表示
-        request.setAttribute("planter", selectedItem);
-        request.getRequestDispatcher("/detail.jsp").forward(request, response);
+        // 例として、levelが0なら種選択画面、そうでなければ水やり画面に遷移
+        if (flower.getLevel() == 0) {
+            // 種選択画面へ
+            request.setAttribute("flower", flower);
+            request.getRequestDispatcher("seedSelect.jsp").forward(request, response);
+        } else {
+            // 水やり画面へ
+            request.setAttribute("flower", flower);
+            request.getRequestDispatcher("watering.jsp").forward(request, response);
+        }
 	}
 
 	/**
